@@ -11,7 +11,7 @@
 // Run it by hand like this:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -27,9 +27,14 @@ const DOSSIER_CAPS = {
 
 function handIn(repoRoot: string, outDir: string): void {
   // Start from a clean output directory so a stale file from an earlier
-  // run can never leak into this entry.
-  rmSync(outDir, { recursive: true, force: true });
+  // run can never leak into this entry. Clear the directory's CONTENTS,
+  // not the directory itself: the grader mounts /output as a volume, and
+  // removing a mount point fails with EBUSY (exit 1) — that is exactly
+  // how round 1 was rejected (run_completes, exit code 1).
   mkdirSync(outDir, { recursive: true });
+  for (const name of readdirSync(outDir)) {
+    rmSync(join(outDir, name), { recursive: true, force: true });
+  }
 
   const shotsDir = join(repoRoot, 'screenshots');
 
